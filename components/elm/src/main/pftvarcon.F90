@@ -302,6 +302,8 @@ module pftvarcon
   real(r8), allocatable :: gcbc_q(:)           !effectiveness of surface cover in reducing runoff-driven erosion
   real(r8), allocatable :: gcbr_p(:)           !effectiveness of roots in reducing rainfall-driven erosion
   real(r8), allocatable :: gcbr_q(:)           !effectiveness of roots in reducing runoff-driven erosion
+   ! NGEE Arctic shrub bending 
+  real(r8), allocatable :: bend_parm(:)        ! parameter that describes the "stiffness" of shrub branches (Sturm et al. 2005, Liston and Hiemstra 2011)
 
   !
   ! !PUBLIC MEMBER FUNCTIONS:
@@ -598,6 +600,8 @@ contains
     allocate( gcbr_p             (0:mxpft) )
     allocate( gcbr_q             (0:mxpft) )
 
+   ! NGEE arctic
+    allocate( bend_parm          (0:mxpft) )
     ! Set specific vegetation type values
 
     if (masterproc) then
@@ -1018,6 +1022,10 @@ contains
           mergetoelmpft(i) = i
        end do
     end if
+
+    ! new NGEE parameters:
+    call ncd_io('bend_parm', bend_parm, 'read', ncid, readvar=readv, posNOTonfile=.true.)
+    if (.not. readv ) bend_parm(:) = 1._r8   ! set to 1 if not on file - by default: no change.
 
 
 

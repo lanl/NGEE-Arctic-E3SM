@@ -144,6 +144,8 @@ module VegetationPropertiesType
      real(r8), pointer :: br_xr(:)         => null()   !Base rate for excess respiration
      real(r8), pointer :: tc_stress        => null()   !Critial temperature for moisture stress
 
+     !NGEE Arctic
+     real(r8), pointer :: bend_parm(:)     => null()   ! shrub bending parameter
 
    contains
    procedure, public :: Init => veg_vp_init
