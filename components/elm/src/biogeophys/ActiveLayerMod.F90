@@ -1,5 +1,5 @@
 module ActiveLayerMod
-  
+
   !-----------------------------------------------------------------------
   ! !DESCRIPTION:
   ! Module holding routines for calculation of active layer dynamics
@@ -10,9 +10,9 @@ module ActiveLayerMod
   use elm_varctl      , only : iulog
   use TemperatureType , only : temperature_type
   use CanopyStateType , only : canopystate_type
-  use GridcellType    , only : grc_pp       
+  use GridcellType    , only : grc_pp
   use ColumnType      , only : col_pp
-  use ColumnDataType  , only : col_es  
+  use ColumnDataType  , only : col_es
   !
   implicit none
   save
@@ -21,12 +21,12 @@ module ActiveLayerMod
   ! !PUBLIC MEMBER FUNCTIONS:
   public:: alt_calc
   !-----------------------------------------------------------------------
-  
+
 contains
 
   !-----------------------------------------------------------------------
   subroutine alt_calc(num_soilc, filter_soilc, &
-       temperature_vars, canopystate_vars) 
+       temperature_vars, canopystate_vars)
     !
     ! !DESCRIPTION:
     !  define active layer thickness similarly to frost_table, except set as deepest thawed layer and define on nlevgrnd
@@ -68,15 +68,17 @@ contains
     real(r8) :: t1, t2, z1, z2                  ! temporary variables
     !-----------------------------------------------------------------------
 
-    associate(                                                                & 
-         t_soisno             =>    col_es%t_soisno        ,    & ! Input:   [real(r8) (:,:) ]  soil temperature (Kelvin)  (-nlevsno+1:nlevgrnd)                    
-         
-         alt                  =>    canopystate_vars%alt_col             ,    & ! Output:  [real(r8) (:)   ]  current depth of thaw                                                 
-         altmax               =>    canopystate_vars%altmax_col          ,    & ! Output:  [real(r8) (:)   ]  maximum annual depth of thaw                                          
-         altmax_lastyear      =>    canopystate_vars%altmax_lastyear_col ,    & ! Output:  [real(r8) (:)   ]  prior year maximum annual depth of thaw                               
-         alt_indx             =>    canopystate_vars%alt_indx_col        ,    & ! Output:  [integer  (:)   ]  current depth of thaw                                                  
-         altmax_indx          =>    canopystate_vars%altmax_indx_col     ,    & ! Output:  [integer  (:)   ]  maximum annual depth of thaw                                           
-         altmax_lastyear_indx =>    canopystate_vars%altmax_lastyear_indx_col & ! Output:  [integer  (:)   ]  prior year maximum annual depth of thaw                                
+    associate(                                                                &
+         t_soisno             =>    col_es%t_soisno        ,    & ! Input:   [real(r8) (:,:) ]  soil temperature (Kelvin)  (-nlevsno+1:nlevgrnd)
+
+         alt                  =>    canopystate_vars%alt_col             ,      & ! Output:  [real(r8) (:)   ]  current depth of thaw
+         altmax               =>    canopystate_vars%altmax_col          ,      & ! Output:  [real(r8) (:)   ]  maximum annual depth of thaw
+         altmax_lastyear      =>    canopystate_vars%altmax_lastyear_col ,      & ! Output:  [real(r8) (:)   ]  prior year maximum annual depth of thaw
+         altmax_ever          =>    canopystate_vars%altmax_ever_col     ,      & ! Output:  [real(r8) (:)   ]  maximum thaw depth since initialization
+         alt_indx             =>    canopystate_vars%alt_indx_col        ,      & ! Output:  [integer  (:)   ]  current depth of thaw
+         altmax_indx          =>    canopystate_vars%altmax_indx_col     ,      & ! Output:  [integer  (:)   ]  maximum annual depth of thaw
+         altmax_lastyear_indx =>    canopystate_vars%altmax_lastyear_indx_col , & ! Output:  [integer  (:)   ]  prior year maximum annual depth of thaw
+         altmax_ever_indx     =>    canopystate_vars%altmax_ever_indx_col       & ! Output:  [integer  (:)   ]  maximum thaw depth since initialization
          )
 
       ! on a set annual timestep, update annual maxima
@@ -88,7 +90,7 @@ contains
             c = filter_soilc(fc)
             g = col_pp%gridcell(c)
             if ( grc_pp%lat(g) > 0. ) then
-               
+
                altmax_lastyear(c) = altmax(c)
                altmax_lastyear_indx(c) = altmax_indx(c)
                altmax(c) = 0.
@@ -100,7 +102,7 @@ contains
          do fc = 1,num_soilc
             c = filter_soilc(fc)
             g = col_pp%gridcell(c)
-            if ( grc_pp%lat(g) <= 0. ) then 
+            if ( grc_pp%lat(g) <= 0. ) then
                altmax_lastyear(c) = altmax(c)
                altmax_lastyear_indx(c) = altmax_indx(c)
                altmax(c) = 0.
@@ -150,11 +152,15 @@ contains
             altmax(c) = alt(c)
             altmax_indx(c) = alt_indx(c)
          endif
+         if (alt(c) > altmax_ever(c)) then
+            altmax_ever(c) = alt(c)
+            altmax_ever_indx(c) = alt_indx(c)
+         endif
 
       end do
 
-    end associate 
+    end associate
 
   end subroutine alt_calc
-  
+
 end module ActiveLayerMod
