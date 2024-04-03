@@ -148,7 +148,7 @@ contains
     allocate(this%alt_indx_col             (begc:endc))           ; this%alt_indx_col             (:)   = huge(1)
     allocate(this%altmax_indx_col          (begc:endc))           ; this%altmax_indx_col          (:)   = huge(1)
     allocate(this%altmax_lastyear_indx_col (begc:endc))           ; this%altmax_lastyear_indx_col (:)   = huge(1)
-    allocate(this%altmax_ever_indx_col     (begc:endc))           ; this%altmax_ever_indx_col     (:)   = huge(1)
+    allocate(this%altmax_ever_indx_col     (begc:endc))           ; this%altmax_ever_indx_col     (:)   = huge(1) 
 
     allocate(this%dewmx_patch              (begp:endp))           ; this%dewmx_patch              (:)   = spval
     allocate(this%dleaf_patch              (begp:endp))           ; this%dleaf_patch              (:)   = spval
