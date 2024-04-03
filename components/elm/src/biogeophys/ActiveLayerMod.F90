@@ -7,7 +7,7 @@ module ActiveLayerMod
   ! !USES:
   use shr_kind_mod    , only : r8 => shr_kind_r8
   use shr_const_mod   , only : SHR_CONST_TKFRZ
-  use elm_varctl      , only : iulog
+  use elm_varctl      , only : iulog, spinup_state
   use TemperatureType , only : temperature_type
   use CanopyStateType , only : canopystate_type
   use GridcellType    , only : grc_pp
@@ -153,8 +153,13 @@ contains
             altmax_indx(c) = alt_indx(c)
          endif
          if (alt(c) > altmax_ever(c)) then
-            altmax_ever(c) = alt(c)
-            altmax_ever_indx(c) = alt_indx(c)
+            if (spinup_state .eq. 0) then !overwrite if in spinup
+                altmax_ever(c) = alt(c)
+                altmax_ever_indx(c) = alt_indx(c)
+            else
+                altmax_ever(c) = 0._r8
+                altmax_ever_indx(c) = 0
+            endif
          endif
 
       end do
