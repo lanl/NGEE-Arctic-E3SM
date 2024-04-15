@@ -12,10 +12,10 @@ module WaterstateType
   use decompMod      , only : bounds_type
   use elm_varctl     , only : use_vancouver, use_mexicocity, use_cn, iulog, use_fates_planthydro, &
                               use_hydrstress, use_fan
-  use elm_varpar     , only : nlevgrnd, nlevurb, nlevsno 
+  use elm_varpar     , only : nlevgrnd, nlevurb, nlevsno
   use elm_varcon     , only : spval
-  use LandunitType   , only : lun_pp                
-  use ColumnType     , only : col_pp                
+  use LandunitType   , only : lun_pp
+  use ColumnType     , only : col_pp
   !
   implicit none
   save
@@ -32,24 +32,25 @@ module WaterstateType
      real(r8), pointer :: snowliq_col            (:)   ! col average snow liquid water
      real(r8), pointer :: int_snow_col           (:)   ! col integrated snowfall (mm H2O)
      real(r8), pointer :: snow_layer_unity_col   (:,:) ! value 1 for each snow layer, used for history diagnostics
-     real(r8), pointer :: bw_col                 (:,:) ! col partial density of water in the snow pack (ice + liquid) [kg/m3] 
+     real(r8), pointer :: bw_col                 (:,:) ! col partial density of water in the snow pack (ice + liquid) [kg/m3]
      real(r8), pointer :: finundated_col         (:)   ! fraction of column that is inundated, this is for bgc caclulation in betr
      real(r8), pointer :: h2osoi_tend_tsl_col    (:)   ! col moisture tendency due to vertical movement at topmost layer (m3/m3/s)
- 
+     real(r8), pointer :: excess_ice             (:)   ! excess ground ice in polygonal tundra areas [kg/m2]
+
      real(r8), pointer :: rhvap_soi_col          (:,:)
      real(r8), pointer :: rho_vap_col            (:,:)
      real(r8), pointer :: smp_l_col              (:,:) ! col liquid phase soil matric potential, mm
      real(r8), pointer :: h2osno_col             (:)   ! col snow water (mm H2O)
      real(r8), pointer :: h2osno_old_col         (:)   ! col snow mass for previous time step (kg/m2) (new)
-     real(r8), pointer :: h2osoi_liq_col         (:,:) ! col liquid water (kg/m2) (new) (-nlevsno+1:nlevgrnd)    
-     real(r8), pointer :: h2osoi_ice_col         (:,:) ! col ice lens (kg/m2) (new) (-nlevsno+1:nlevgrnd)    
+     real(r8), pointer :: h2osoi_liq_col         (:,:) ! col liquid water (kg/m2) (new) (-nlevsno+1:nlevgrnd)
+     real(r8), pointer :: h2osoi_ice_col         (:,:) ! col ice lens (kg/m2) (new) (-nlevsno+1:nlevgrnd)
      real(r8), pointer :: h2osoi_liq_old_col     (:,:)
      real(r8), pointer :: h2osoi_ice_old_col     (:,:)
      real(r8), pointer :: h2osoi_liqice_10cm_col (:)   ! col liquid water + ice lens in top 10cm of soil (kg/m2)
      real(r8), pointer :: h2osoi_vol_col         (:,:) ! col volumetric soil water (0<=h2osoi_vol<=watsat) [m3/m3]  (nlevgrnd)
-     real(r8), pointer :: air_vol_col            (:,:) ! col air filled porosity     
+     real(r8), pointer :: air_vol_col            (:,:) ! col air filled porosity
      real(r8), pointer :: h2osoi_liqvol_col      (:,:) ! col volumetric liquid water content (v/v)
-     real(r8), pointer :: h2osoi_icevol_col      (:,:) ! col volumetric ice content (v/v)     
+     real(r8), pointer :: h2osoi_icevol_col      (:,:) ! col volumetric ice content (v/v)
      real(r8), pointer :: h2ocan_patch           (:)   ! patch canopy water (mm H2O)
      real(r8), pointer :: h2ocan_col             (:)   ! col canopy water (mm H2O)
      real(r8), pointer :: h2osfc_col             (:)   ! col surface water (mm H2O)
@@ -88,10 +89,10 @@ module WaterstateType
      ! Fractions
      real(r8), pointer :: frac_sno_col           (:)   ! col fraction of ground covered by snow (0 to 1)
      real(r8), pointer :: frac_sno_eff_col       (:)   ! col fraction of ground covered by snow (0 to 1)
-     real(r8), pointer :: frac_iceold_col        (:,:) ! col fraction of ice relative to the tot water (new) (-nlevsno+1:nlevgrnd) 
+     real(r8), pointer :: frac_iceold_col        (:,:) ! col fraction of ice relative to the tot water (new) (-nlevsno+1:nlevgrnd)
      real(r8), pointer :: frac_h2osfc_col        (:)   ! col fractional area with surface water greater than zero
-     real(r8), pointer :: wf_col                 (:)   ! col soil water as frac. of whc for top 0.05 m (0-1) 
-     real(r8), pointer :: wf2_col                (:)   ! col soil water as frac. of whc for top 0.17 m (0-1) 
+     real(r8), pointer :: wf_col                 (:)   ! col soil water as frac. of whc for top 0.05 m (0-1)
+     real(r8), pointer :: wf2_col                (:)   ! col soil water as frac. of whc for top 0.17 m (0-1)
      real(r8), pointer :: fwet_patch             (:)   ! patch canopy fraction that is wet (0 to 1)
      real(r8), pointer :: fdry_patch             (:)   ! patch canopy fraction of foliage that is green and dry [-] (new)
 
@@ -133,17 +134,17 @@ module WaterstateType
 
    contains
 
-     procedure          :: Init         
-     procedure          :: Restart      
-     procedure, public  :: Reset 
-     procedure, private :: InitAllocate 
-     procedure, private :: InitHistory  
-     procedure, private :: InitCold     
+     procedure          :: Init
+     procedure          :: Restart
+     procedure, public  :: Reset
+     procedure, private :: InitAllocate
+     procedure, private :: InitHistory
+     procedure, private :: InitCold
      procedure, public  :: save_h2osoi_old
   end type waterstate_type
   ! minimum allowed snow effective radius (also "fresh snow" value) [microns]
-  real(r8), public, parameter :: snw_rds_min = 54.526_r8    
-  
+  real(r8), public, parameter :: snw_rds_min = 54.526_r8
+
   type(waterstate_type) ,public        :: waterstate_vars
   !------------------------------------------------------------------------
 
@@ -154,7 +155,7 @@ contains
        h2osno_input_col, snow_depth_input_col, watsat_col, t_soisno_col)
 
     class(waterstate_type)            :: this
-    type(bounds_type) , intent(in)    :: bounds  
+    type(bounds_type) , intent(in)    :: bounds
     real(r8)          , intent(inout) :: h2osno_input_col(bounds%begc:)
     real(r8)          , intent(inout) :: snow_depth_input_col(bounds%begc:)
     !real(r8)          , intent(inout) :: watsat_col(bounds%begc:, 1:)          ! volumetric soil water at saturation (porosity)
@@ -162,7 +163,7 @@ contains
     real(r8)              , intent(inout)    :: watsat_col(bounds%begc:bounds%endc, 1:nlevgrnd)          ! volumetric soil water at saturation (porosity)
     real(r8)              , intent(inout)    :: t_soisno_col(bounds%begc:bounds%endc, -nlevsno+1:nlevgrnd) ! col soil temperature (Kelvin)
 
-    call this%InitAllocate(bounds) 
+    call this%InitAllocate(bounds)
 
     call this%InitHistory(bounds)
 
@@ -182,7 +183,7 @@ contains
     !
     ! !ARGUMENTS:
     class(waterstate_type) :: this
-    type(bounds_type), intent(in) :: bounds  
+    type(bounds_type), intent(in) :: bounds
     !
     ! !LOCAL VARIABLES:
     integer :: begp, endp
@@ -197,39 +198,40 @@ contains
     begl = bounds%begl; endl= bounds%endl
     begg = bounds%begg; endg= bounds%endg
 
-    allocate(this%do_capsnow_col         (begc:endc))                   
+    allocate(this%do_capsnow_col         (begc:endc))
     allocate(this%snow_depth_col         (begc:endc))                     ; this%snow_depth_col         (:)   = nan
     allocate(this%snow_persistence_col   (begc:endc))                     ; this%snow_persistence_col   (:)   = nan
     allocate(this%snowdp_col             (begc:endc))                     ; this%snowdp_col             (:)   = nan
-    allocate(this%snowice_col            (begc:endc))                     ; this%snowice_col            (:)   = nan   
-    allocate(this%snowliq_col            (begc:endc))                     ; this%snowliq_col            (:)   = nan   
-    allocate(this%int_snow_col           (begc:endc))                     ; this%int_snow_col           (:)   = nan   
+    allocate(this%snowice_col            (begc:endc))                     ; this%snowice_col            (:)   = nan
+    allocate(this%snowliq_col            (begc:endc))                     ; this%snowliq_col            (:)   = nan
+    allocate(this%int_snow_col           (begc:endc))                     ; this%int_snow_col           (:)   = nan
     allocate(this%snow_layer_unity_col   (begc:endc,-nlevsno+1:0))        ; this%snow_layer_unity_col   (:,:) = nan
-    allocate(this%bw_col                 (begc:endc,-nlevsno+1:0))        ; this%bw_col                 (:,:) = nan   
+    allocate(this%bw_col                 (begc:endc,-nlevsno+1:0))        ; this%bw_col                 (:,:) = nan
     allocate(this%smp_l_col              (begc:endc,-nlevsno+1:nlevgrnd)) ; this%smp_l_col              (:,:) = nan
     allocate(this%finundated_col         (begc:endc))                     ; this%finundated_col         (:)   = nan
     if (use_fan) then
        allocate(this%h2osoi_tend_tsl_col(begc:endc))                      ; this%h2osoi_tend_tsl_col    (:)   = nan
     end if
+    allocate(this%excess_ice             (begc:endc))                     ; this%excess_ice             (:)   = nan
 
-    allocate(this%h2osno_col             (begc:endc))                     ; this%h2osno_col             (:)   = nan   
-    allocate(this%h2osno_old_col         (begc:endc))                     ; this%h2osno_old_col         (:)   = nan   
+    allocate(this%h2osno_col             (begc:endc))                     ; this%h2osno_col             (:)   = nan
+    allocate(this%h2osno_old_col         (begc:endc))                     ; this%h2osno_old_col         (:)   = nan
     allocate(this%h2osoi_liqice_10cm_col (begc:endc))                     ; this%h2osoi_liqice_10cm_col (:)   = nan
-    
+
     allocate(this%h2osoi_vol_col         (begc:endc, 1:nlevgrnd))         ; this%h2osoi_vol_col         (:,:) = nan
     allocate(this%air_vol_col            (begc:endc, 1:nlevgrnd))         ; this%air_vol_col            (:,:) = nan
     allocate(this%h2osoi_liqvol_col      (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_liqvol_col      (:,:) = nan
-    allocate(this%h2osoi_icevol_col      (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_icevol_col      (:,:) = nan    
+    allocate(this%h2osoi_icevol_col      (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_icevol_col      (:,:) = nan
     allocate(this%rho_vap_col            (begc:endc,-nlevsno+1:nlevgrnd)) ; this%rho_vap_col            (:,:) = nan
     allocate(this%rhvap_soi_col          (begc:endc,-nlevsno+1:nlevgrnd)) ; this%rhvap_soi_col          (:,:) = nan
     allocate(this%h2osoi_liq_old_col     (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_liq_old_col     (:,:) = nan
-    allocate(this%h2osoi_ice_old_col     (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_ice_old_col     (:,:) = nan 
+    allocate(this%h2osoi_ice_old_col     (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_ice_old_col     (:,:) = nan
     allocate(this%h2osoi_ice_col         (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_ice_col         (:,:) = nan
     allocate(this%h2osoi_liq_col         (begc:endc,-nlevsno+1:nlevgrnd)) ; this%h2osoi_liq_col         (:,:) = nan
-    allocate(this%h2ocan_patch           (begp:endp))                     ; this%h2ocan_patch           (:)   = nan  
-    allocate(this%h2ocan_col             (begc:endc))                     ; this%h2ocan_col             (:)   = nan  
-    allocate(this%h2osfc_col             (begc:endc))                     ; this%h2osfc_col             (:)   = nan   
-    allocate(this%swe_old_col            (begc:endc,-nlevsno+1:0))        ; this%swe_old_col            (:,:) = nan   
+    allocate(this%h2ocan_patch           (begp:endp))                     ; this%h2ocan_patch           (:)   = nan
+    allocate(this%h2ocan_col             (begc:endc))                     ; this%h2ocan_col             (:)   = nan
+    allocate(this%h2osfc_col             (begc:endc))                     ; this%h2osfc_col             (:)   = nan
+    allocate(this%swe_old_col            (begc:endc,-nlevsno+1:0))        ; this%swe_old_col            (:,:) = nan
     allocate(this%liq1_grc               (begg:endg))                     ; this%liq1_grc               (:)   = nan
     allocate(this%liq2_grc               (begg:endg))                     ; this%liq2_grc               (:)   = nan
     allocate(this%ice1_grc               (begg:endg))                     ; this%ice1_grc               (:)   = nan
@@ -245,11 +247,11 @@ contains
     allocate(this%h2osno_top_col         (begc:endc))                     ; this%h2osno_top_col         (:)   = nan
     allocate(this%sno_liq_top_col        (begc:endc))                     ; this%sno_liq_top_col        (:)   = nan
 
-    allocate(this%qg_snow_col            (begc:endc))                     ; this%qg_snow_col            (:)   = nan   
-    allocate(this%qg_soil_col            (begc:endc))                     ; this%qg_soil_col            (:)   = nan   
-    allocate(this%qg_h2osfc_col          (begc:endc))                     ; this%qg_h2osfc_col          (:)   = nan   
-    allocate(this%qg_col                 (begc:endc))                     ; this%qg_col                 (:)   = nan   
-    allocate(this%dqgdT_col              (begc:endc))                     ; this%dqgdT_col              (:)   = nan   
+    allocate(this%qg_snow_col            (begc:endc))                     ; this%qg_snow_col            (:)   = nan
+    allocate(this%qg_soil_col            (begc:endc))                     ; this%qg_soil_col            (:)   = nan
+    allocate(this%qg_h2osfc_col          (begc:endc))                     ; this%qg_h2osfc_col          (:)   = nan
+    allocate(this%qg_col                 (begc:endc))                     ; this%qg_col                 (:)   = nan
+    allocate(this%dqgdT_col              (begc:endc))                     ; this%dqgdT_col              (:)   = nan
     allocate(this%qaf_lun                (begl:endl))                     ; this%qaf_lun                (:)   = nan
     allocate(this%q_ref2m_patch          (begp:endp))                     ; this%q_ref2m_patch          (:)   = nan
     allocate(this%rh_ref2m_patch         (begp:endp))                     ; this%rh_ref2m_patch         (:)   = nan
@@ -260,9 +262,9 @@ contains
     allocate(this%frac_sno_col           (begc:endc))                     ; this%frac_sno_col           (:)   = nan
     allocate(this%frac_sno_eff_col       (begc:endc))                     ; this%frac_sno_eff_col       (:)   = nan
     allocate(this%frac_iceold_col        (begc:endc,-nlevsno+1:nlevgrnd)) ; this%frac_iceold_col        (:,:) = nan
-    allocate(this%frac_h2osfc_col        (begc:endc))                     ; this%frac_h2osfc_col        (:)   = nan 
+    allocate(this%frac_h2osfc_col        (begc:endc))                     ; this%frac_h2osfc_col        (:)   = nan
     allocate(this%wf_col                 (begc:endc))                     ; this%wf_col                 (:)   = nan
-    allocate(this%wf2_col                (begc:endc))                     ; 
+    allocate(this%wf2_col                (begc:endc))                     ;
     allocate(this%fwet_patch             (begp:endp))                     ; this%fwet_patch             (:)   = nan
     allocate(this%fdry_patch             (begp:endp))                     ; this%fdry_patch             (:)   = nan
 
@@ -312,12 +314,12 @@ contains
     use shr_infnan_mod , only : nan => shr_infnan_nan, assignment(=)
     use elm_varctl     , only : create_glacier_mec_landunit, use_cn, use_lch4
     use elm_varctl     , only : hist_wrtch4diag, use_lake_wat_storage
-    use elm_varpar     , only : nlevsno, crop_prog 
+    use elm_varpar     , only : nlevsno, crop_prog
     use histFileMod    , only : hist_addfld1d, hist_addfld2d, no_snow_normal, no_snow_zero
     !
     ! !ARGUMENTS:
     class(waterstate_type) :: this
-    type(bounds_type), intent(in) :: bounds  
+    type(bounds_type), intent(in) :: bounds
     !
     ! !LOCAL VARIABLES:
     integer           :: begp, endp
@@ -332,8 +334,8 @@ contains
     begg = bounds%begg; endg= bounds%endg
 
 
-    ! h2osno also includes snow that is part of the soil column (an 
-    ! initial snow layer is only created if h2osno > 10mm). 
+    ! h2osno also includes snow that is part of the soil column (an
+    ! initial snow layer is only created if h2osno > 10mm).
 
     ! Snow properties - these will be vertically averaged over the snow profile
 
@@ -353,7 +355,7 @@ contains
        h2osno_input_col, snow_depth_input_col, watsat_col, t_soisno_col)
     !
     ! !DESCRIPTION:
-    ! Initialize time constant variables and cold start conditions 
+    ! Initialize time constant variables and cold start conditions
     !
     ! !USES:
     use shr_const_mod   , only : shr_const_pi
@@ -362,10 +364,10 @@ contains
     use shr_kind_mod    , only : r8 => shr_kind_r8
     use shr_const_mod   , only : SHR_CONST_TKFRZ
     use elm_varpar      , only : nlevsoi, nlevgrnd, nlevsno, nlevlak, nlevurb
-    use landunit_varcon , only : istice, istwet, istsoil, istdlak, istcrop, istice_mec  
+    use landunit_varcon , only : istice, istwet, istsoil, istdlak, istcrop, istice_mec
     use column_varcon   , only : icol_shadewall, icol_road_perv
     use column_varcon   , only : icol_road_imperv, icol_roof, icol_sunwall
-    use elm_varcon      , only : denice, denh2o, spval, sb, bdsno 
+    use elm_varcon      , only : denice, denh2o, spval, sb, bdsno
     use elm_varcon      , only : h2osno_max, zlnd, tfrz, spval
     use elm_varctl      , only : fsurdat, iulog
     use spmdMod         , only : masterproc
@@ -382,13 +384,13 @@ contains
     real(r8)              , intent(in)    :: t_soisno_col(bounds%begc:, -nlevsno+1:) ! col soil temperature (Kelvin)
     !
     ! !LOCAL VARIABLES:
-    integer            :: p,c,j,l,g,lev,nlevs,nlevbed 
+    integer            :: p,c,j,l,g,lev,nlevs,nlevbed
     real(r8)           :: maxslope, slopemax, minslope
     real(r8)           :: d, fd, dfdd, slope0,slopebeta
-    real(r8) ,pointer  :: std (:)     
-    logical            :: readvar 
-    type(file_desc_t)  :: ncid        
-    character(len=256) :: locfn       
+    real(r8) ,pointer  :: std (:)
+    logical            :: readvar
+    type(file_desc_t)  :: ncid
+    character(len=256) :: locfn
     real(r8)           :: snowbd      ! temporary calculation of snow bulk density (kg/m3)
     real(r8)           :: fmelt       ! snowbd/100
     !-----------------------------------------------------------------------
@@ -400,8 +402,8 @@ contains
 
     ! The first three arrays are initialized from the input argument
     do c = bounds%begc,bounds%endc
-       this%h2osno_col(c)             = h2osno_input_col(c) 
-       this%int_snow_col(c)           = h2osno_input_col(c) 
+       this%h2osno_col(c)             = h2osno_input_col(c)
+       this%int_snow_col(c)           = h2osno_input_col(c)
        this%snow_depth_col(c)         = snow_depth_input_col(c)
        this%snow_persistence_col(c)   = 0._r8
        this%snow_layer_unity_col(c,:) = 1._r8
@@ -412,7 +414,7 @@ contains
        this%wf2_col(c) = spval
     end do
 
-    do l = bounds%begl, bounds%endl 
+    do l = bounds%begl, bounds%endl
        if (lun_pp%urbpoi(l)) then
           if (use_vancouver) then
              this%qaf_lun(l) = 0.0111_r8
@@ -427,8 +429,8 @@ contains
     ! Water Stored in plants is almost always a static entity, with the exception
     ! of when FATES-hydraulics is used. As such, this is trivially set to 0.0 (rgk 03-2017)
     this%total_plant_stored_h2o_col(bounds%begc:bounds%endc) = 0.0_r8
-    
-    associate(snl => col_pp%snl, nlev2bed => col_pp%nlevbed) 
+
+    associate(snl => col_pp%snl, nlev2bed => col_pp%nlevbed)
 
       this%h2osfc_col(bounds%begc:bounds%endc) = 0._r8
       this%h2ocan_patch(bounds%begp:bounds%endp) = 0._r8
@@ -491,14 +493,14 @@ contains
   !------------------------------------------------------------------------
   subroutine Restart(this, bounds, ncid, flag, &
        watsat_col)
-    ! 
+    !
     ! !DESCRIPTION:
     ! Read/Write module information to/from restart file.
     !
     ! !USES:
     use spmdMod          , only : masterproc
-    use elm_varcon       , only : denice, denh2o, pondmx, watmin, spval  
-    use landunit_varcon  , only : istcrop, istdlak, istsoil  
+    use elm_varcon       , only : denice, denh2o, pondmx, watmin, spval
+    use landunit_varcon  , only : istcrop, istdlak, istsoil
     use column_varcon    , only : icol_roof, icol_sunwall, icol_shadewall
     use elm_time_manager , only : is_first_step
     use elm_varctl       , only : bound_h2osoi, use_lake_wat_storage
@@ -508,7 +510,7 @@ contains
     !
     ! !ARGUMENTS:
     class(waterstate_type) :: this
-    type(bounds_type), intent(in)    :: bounds 
+    type(bounds_type), intent(in)    :: bounds
     type(file_desc_t), intent(inout) :: ncid   ! netcdf id
     character(len=*) , intent(in)    :: flag   ! 'read' or 'write'
     real(r8)         , intent(in)    :: watsat_col (bounds%begc:, 1:)  ! volumetric soil water at saturation (porosity)
@@ -516,7 +518,7 @@ contains
     ! !LOCAL VARIABLES:
     integer  :: c,l,j,nlevs
     logical  :: readvar
-    real(r8) :: maxwatsat    ! maximum porosity    
+    real(r8) :: maxwatsat    ! maximum porosity
     real(r8) :: excess       ! excess volumetric soil water
     real(r8) :: totwat       ! total soil water (mm)
     !------------------------------------------------------------------------
@@ -552,7 +554,7 @@ contains
     !
     ! !ARGUMENTS:
     class(waterstate_type) :: this
-    type(bounds_type) , intent(in)    :: bounds  
+    type(bounds_type) , intent(in)    :: bounds
 
 
     integer :: begc, endc
@@ -561,6 +563,6 @@ contains
 
     this%h2osoi_liq_old_col(begc:endc,:) = this%h2osoi_liq_col(begc:endc,:)
     this%h2osoi_ice_old_col(begc:endc,:) = this%h2osoi_ice_col(begc:endc,:)
-      
+
   end subroutine save_h2osoi_old
 end module WaterstateType
