@@ -804,7 +804,7 @@ contains
           micro_sigma  => col_pp%micro_sigma       , & ! Input:  [real(r8) (:)   ] microtopography pdf sigma (m)
 
           h2osno       => col_ws%h2osno            , & ! Input:  [real(r8) (:)   ] snow water (mm H2O)
-          excess_ice   => col_ws%excess_ice        , & ! Input:  [real(r8) (:)   ] excess ground ice [kg/m2]
+          excess_ice   => col_ws%excess_ice        , & ! Input:  [real(r8) (:,:)   ] excess ground ice [kg/m2]
 
           h2osoi_liq   => col_ws%h2osoi_liq        , & ! Output: [real(r8) (:,:) ] liquid water (col,lyr) [kg/m2]
           h2osfc       => col_ws%h2osfc            , & ! Output: [real(r8) (:)   ] surface water (mm)
