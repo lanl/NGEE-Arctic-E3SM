@@ -797,7 +797,7 @@ contains
      integer :: c,f,l,k          ! indices
      real(r8):: d,fd,dfdd      ! temporary variable for frac_h2oscs iteration
      real(r8):: sigma          ! microtopography pdf sigma in mm
-	 real(r8):: swc            ! surface water content in m
+     real(r8):: swc            ! surface water content in m
      real(r8):: min_h2osfc
      !-----------------------------------------------------------------------
 
@@ -807,7 +807,7 @@ contains
           iwp_microrel => col_pp%iwp_microrel , & ! Input:  [real(r8) (:)   ] ice wedge polygon microtopographic relief (m)       
           iwp_exclvol  => col_pp%iwp_exclvol  , & ! Input:  [real(r8) (:)   ] microtopography pdf sigma (m)        
           iwp_ddep     => col_pp%iwp_ddep     , & ! Input:  [real(r8) (:)   ] microtopography pdf sigma (m)       
-		  
+          
           h2osno       => col_ws%h2osno       , & ! Input:  [real(r8) (:)   ] snow water (mm H2O)                               
           
           h2osoi_liq   => col_ws%h2osoi_liq   , & ! Output: [real(r8) (:,:) ] liquid water (col,lyr) [kg/m2]                  
@@ -831,36 +831,36 @@ contains
              !  Use newton-raphson method to iteratively determine frac_h20sfc
              !  based on amount of surface water storage (h2osfc) and 
              !  microtopography variability (micro_sigma) if nonpolygonal, or
-			 !  amount of surface water (h2osfc) and microtopographic attributes
-			 !  (iwp_microrel, iwp_exclvol) if polygonal tundra
+             !  amount of surface water (h2osfc) and microtopographic attributes
+             !  (iwp_microrel, iwp_exclvol) if polygonal tundra
 
              if (h2osfc(c) > min_h2osfc) then
                 ! a cutoff is needed for numerical reasons...(nonconvergence after 5 iterations)
-				
-				if lun_pp%ispolygon(l) then
-				! calculate water depth and inundation fraction if column is polygonal
-				swc = h2osfc(c)/1000 ! convert to m
-				   
-				    if swc > iwp_microrel - iwp_exclvol then
-				        d = swc + iwp_exclvol
-				    else
-				        d = 0.0
-				        do k=1,10
-					        fd = (2_r8*iwp_exclvol - iwp_microrel) * (d/iwp_microrel)**3_r8 &
-						         + (2_r8*iwp_microrel - 3_r8*iwp_exclvol) * (d/iwp_microrel)**2_r8 &
-						 	     - swc
-					        dfdd = (3_r8/iwp_microrel) * (2_r8*iwp_exclvol - iwp_microrel) * (d/iwp_microrel)**2_r8 &
-						           + (2_r8/iwp_microrel) * (2_r8*iwp_microrel - 3_r8*iwp_exclvol) * (d/iwp_microrel)
-					        d = d - fd/dfdd
-					    enddo
-				    endif
-					!--  update the submerged areal fraction using the new d value
-					frac_h2osfc(c) = (3_r8/iwp_microrel) * (2_r8*iwp_exclvol - iwp_microrel) * (d/iwp_microrel)**2_r8 &
-					                 + (2_r8/iwp_microrel) * (2_r8*iwp_microrel - 3_r8*iwp_exclvol) * (d/iwp_microrel) 
+                
+                if lun_pp%ispolygon(l) then
+                ! calculate water depth and inundation fraction if column is polygonal
+                swc = h2osfc(c)/1000 ! convert to m
+                   
+                    if swc > iwp_microrel - iwp_exclvol then
+                        d = swc + iwp_exclvol
+                    else
+                        d = 0.0
+                        do k=1,10
+                            fd = (2_r8*iwp_exclvol - iwp_microrel) * (d/iwp_microrel)**3_r8 &
+                                 + (2_r8*iwp_microrel - 3_r8*iwp_exclvol) * (d/iwp_microrel)**2_r8 &
+                                 - swc
+                            dfdd = (3_r8/iwp_microrel) * (2_r8*iwp_exclvol - iwp_microrel) * (d/iwp_microrel)**2_r8 &
+                                   + (2_r8/iwp_microrel) * (2_r8*iwp_microrel - 3_r8*iwp_exclvol) * (d/iwp_microrel)
+                            d = d - fd/dfdd
+                        enddo
                     endif
-				   
-				else 
-				! calculate water depth and inudation fraction if column is non-polygonal
+                    !--  update the submerged areal fraction using the new d value
+                    frac_h2osfc(c) = (3_r8/iwp_microrel) * (2_r8*iwp_exclvol - iwp_microrel) * (d/iwp_microrel)**2_r8 &
+                                     + (2_r8/iwp_microrel) * (2_r8*iwp_microrel - 3_r8*iwp_exclvol) * (d/iwp_microrel) 
+                    endif
+                   
+                else 
+                ! calculate water depth and inudation fraction if column is non-polygonal
                 d=0.0
 
                 sigma=1.0e3 * micro_sigma(c) ! convert to mm
@@ -874,7 +874,7 @@ contains
                 enddo
                 !--  update the submerged areal fraction using the new d value
                 frac_h2osfc(c) = 0.5*(1.0_r8+erf(d/(sigma*sqrt(2.0))))
-				endif
+                endif
 
              else
                 frac_h2osfc(c) = 0._r8
