@@ -838,8 +838,8 @@ contains
                 ! a cutoff is needed for numerical reasons...(nonconvergence after 5 iterations)
                 
                 if lun_pp%ispolygon(l) then
-                ! calculate water depth and inundation fraction if column is polygonal
-                swc = h2osfc(c)/1000 ! convert to m
+                    ! calculate water depth and inundation fraction if column is polygonal
+                    swc = h2osfc(c)/1000 ! convert to m
                    
                     if swc > iwp_microrel - iwp_exclvol then
                         d = swc + iwp_exclvol
@@ -854,26 +854,26 @@ contains
                             d = d - fd/dfdd
                         enddo
                     endif
+
                     !--  update the submerged areal fraction using the new d value
                     frac_h2osfc(c) = (3_r8/iwp_microrel) * (2_r8*iwp_exclvol - iwp_microrel) * (d/iwp_microrel)**2_r8 &
                                      + (2_r8/iwp_microrel) * (2_r8*iwp_microrel - 3_r8*iwp_exclvol) * (d/iwp_microrel) 
-                    endif
+                endif
                    
                 else 
-                ! calculate water depth and inudation fraction if column is non-polygonal
-                d=0.0
+                    ! calculate water depth and inudation fraction if column is non-polygonal
+                    d=0.0
+                    sigma=1.0e3 * micro_sigma(c) ! convert to mm
+                    do k=1,10
+                       fd = 0.5*d*(1.0_r8+erf(d/(sigma*sqrt(2.0)))) &
+                            +sigma/sqrt(2.0*shr_const_pi)*exp(-d**2/(2.0*sigma**2)) &
+                            -h2osfc(c)
+                       dfdd = 0.5*(1.0_r8+erf(d/(sigma*sqrt(2.0))))
 
-                sigma=1.0e3 * micro_sigma(c) ! convert to mm
-                do k=1,10
-                   fd = 0.5*d*(1.0_r8+erf(d/(sigma*sqrt(2.0)))) &
-                        +sigma/sqrt(2.0*shr_const_pi)*exp(-d**2/(2.0*sigma**2)) &
-                        -h2osfc(c)
-                   dfdd = 0.5*(1.0_r8+erf(d/(sigma*sqrt(2.0))))
-
-                   d = d - fd/dfdd
-                enddo
-                !--  update the submerged areal fraction using the new d value
-                frac_h2osfc(c) = 0.5*(1.0_r8+erf(d/(sigma*sqrt(2.0))))
+                       d = d - fd/dfdd
+                    enddo
+                    !--  update the submerged areal fraction using the new d value
+                    frac_h2osfc(c) = 0.5*(1.0_r8+erf(d/(sigma*sqrt(2.0))))
                 endif
 
              else
