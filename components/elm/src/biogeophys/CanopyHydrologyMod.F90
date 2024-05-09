@@ -783,7 +783,7 @@ contains
      ! !USES:
      use shr_const_mod   , only : shr_const_pi
      use shr_spfn_mod    , only : erf => shr_spfn_erf
-     use landunit_varcon , only : istsoil, istcrop, ispolygon
+     use landunit_varcon , only : istsoil, istcrop
      !
      ! !ARGUMENTS:
      type(bounds_type)     , intent(in)           :: bounds
