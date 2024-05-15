@@ -60,6 +60,7 @@ module ColumnType
      real(r8), pointer :: iwp_microrel (:) => null() ! ice wedge polygon microtopographic relief (m)
      real(r8), pointer :: iwp_exclvol  (:) => null() ! ice wedge polygon excluded volume (m)
      real(r8), pointer :: iwp_ddep     (:) => null() ! ice wedge polygon depression depth (m)
+     real(r8), pointer :: meangradz    (:) => null() ! mean topographic gradient at the column level
 
      ! vertical levels
      integer , pointer :: snl          (:)   => null() ! number of snow layers
