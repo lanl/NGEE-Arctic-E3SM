@@ -285,7 +285,7 @@ contains
      integer                  , intent(in)    :: num_urbanc           ! number of column urban points in column filter
      integer                  , intent(in)    :: filter_urbanc(:)     ! column filter for urban points
      type(atm2lnd_type)       , intent(in)    :: atm2lnd_vars         ! land river two way coupling
-     type(lnd2atm_type)       , intent(in)    :: lnd2atm_vars 
+     type(lnd2atm_type)       , intent(in)    :: lnd2atm_vars
      type(energyflux_type)    , intent(in)    :: energyflux_vars
      type(soilhydrology_type) , intent(inout) :: soilhydrology_vars
      type(soilstate_type)     , intent(inout) :: soilstate_vars
@@ -335,11 +335,12 @@ contains
           snl                  =>    col_pp%snl                  , & ! Input:  [integer  (:)   ]  minus number of snow layers
           dz                   =>    col_pp%dz                   , & ! Input:  [real(r8) (:,:) ]  layer depth (m)
           nlev2bed             =>    col_pp%nlevbed              , & ! Input:  [integer  (:)   ]  number of layers to bedrock
-          cgridcell            =>    col_pp%gridcell             , & ! Input:  [integer  (:)   ]  column's gridcell    
+          cgridcell            =>    col_pp%gridcell             , & ! Input:  [integer  (:)   ]  column's gridcell
           wtgcell              =>    col_pp%wtgcell              , & ! Input:  [real(r8) (:)   ]  weight (relative to gridcell)
           iwp_microrel         =>    col_pp%iwp_microrel         , & ! Input:  [real(r8) (:)   ]  ice wedge polygon microtopographic relief (m)
           iwp_exclvol          =>    col_pp%iwp_exclvol          , & ! Input:  [real(r8) (:)   ]  ice wedge polygon excluded volume (m)
           iwp_ddep             =>    col_pp%iwp_ddep             , & ! Input:  [real(r8) (:)   ]  ice wedge polygon depression depth (m)
+          iwp_subsidence       =>    col_pp%iwp_subsidence       , & ! Input:  [real(r8) (:)   ]  ice wedge polygon ground subsidence (m)
           meangradz            =>    col_pp%meangradz            , & ! Input:  [real(r8) (:)   ]  mean topographic gradient at the column level (unitless)
 
           t_soisno             =>    col_es%t_soisno             , & ! Input:  [real(r8) (:,:) ]  soil temperature (Kelvin)
@@ -365,7 +366,7 @@ contains
           qflx_infl            =>    col_wf%qflx_infl            , & ! Output: [real(r8) (:)   ] infiltration (mm H2O /s)
           qflx_gross_infl_soil =>    col_wf%qflx_gross_infl_soil , & ! Output: [real(r8) (:)] gross infiltration (mm H2O/s)
           qflx_gross_evap_soil =>    col_wf%qflx_gross_evap_soil , & ! Output: [real(r8) (:)] gross evaporation (mm H2O/s)
-          qflx_h2orof_drain    =>    col_wf%qflx_h2orof_drain    , & ! Output: [real(r8) (:)] drainange from floodplain inundation volume (mm H2O/s) 
+          qflx_h2orof_drain    =>    col_wf%qflx_h2orof_drain    , & ! Output: [real(r8) (:)] drainange from floodplain inundation volume (mm H2O/s)
 
           smpmin               =>    soilstate_vars%smpmin_col               , & ! Input:  [real(r8) (:)   ]  restriction for min of soil potential (mm)
           sucsat               =>    soilstate_vars%sucsat_col               , & ! Input:  [real(r8) (:,:) ]  minimum soil suction (mm)
@@ -408,7 +409,7 @@ contains
           c  = filter_hydrologyc(fc)
           g  = cgridcell(c)
           pc = pc_grid(g)
-          
+
           ! partition moisture fluxes between soil and h2osfc
           if (lun_pp%itype(col_pp%landunit(c)) == istsoil .or. lun_pp%itype(col_pp%landunit(c))==istcrop) then
 
@@ -428,7 +429,7 @@ contains
                    h2orof(c)      = atm2lnd_vars%h2orof_grc(g) * wtgcell(c)
                    frac_h2orof(c) = atm2lnd_vars%frac_h2orof_grc(g) * wtgcell(c)
                 endif
-                ! TODO: add inundfrac from ocean 
+                ! TODO: add inundfrac from ocean
                 if ( frac_h2orof(c) > 1.0_r8 - fsno - frac_h2osfc(c) ) then
                   frac_h2orof(c) = 1.0_r8 - fsno - frac_h2osfc(c)
                 endif
@@ -481,7 +482,7 @@ contains
                   qinmax=(1._r8 - fsat(c)) * minval(10._r8**(-e_ice*(icefrac(c,1:3)))*hksat(c,1:3))
                 end if
              end if
-             
+
              if ( use_modified_infil ) then
                 ! Assume frac_h2osfc occurs on fsat
                 if ( frac_h2osfc(c) >= fsat(c) ) then
@@ -492,7 +493,7 @@ contains
              else
                 qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c))*qinmax)
              end if
-             
+
              if (use_lnd_rof_two_way) then
                 qflx_infl_excess(c) = max(0._r8,qflx_in_soil(c) -  (1.0_r8 - frac_h2osfc(c) - frac_h2orof(c))*qinmax)
              else
@@ -508,7 +509,7 @@ contains
              if (h2osfcflag==1) then
                 ! calculate runoff from h2osfc  -------------------------------------
                 if (use_modified_infil) then
-                  if (frac_h2osfc_act(c) <= pc .and. frac_h2osfc(c) <= pc) then 
+                  if (frac_h2osfc_act(c) <= pc .and. frac_h2osfc(c) <= pc) then
                      frac_infclust=0.0_r8
                   else
                       if (frac_h2osfc(c) <= pc) then
@@ -529,9 +530,9 @@ contains
              if (lun_pp%ispolygon(col_pp%landunit(c))) then
                 vdep = (2_r8*iwp_exclvol(c) - iwp_microrel(c)) * (iwp_ddep(c)/iwp_microrel(c))**3_r8 &
                        + (2_r8*iwp_microrel(c) - 3_r8*iwp_exclvol(c)) * (iwp_ddep(c)/iwp_microrel(c))**2_r8
-                phi_eff = min(subsidence, 0.4)  !fix this variable when available to pull from alt calculations
+                phi_eff = min(iwp_subsidence(c), 0.4)  !fix this variable when available to pull from alt calculations
                 swc = h2osfc(c)/1000_r8 ! convert to m
-                
+
                 if (swc >= vdep) then
                    if (lun_pp%polygontype(col_pp%landunit(c)) == ilowcenpoly) then
                       k_wet = (2890_r8*phi_eff**4 - 1171.1_r8*phi_eff**3 + 144.94_r8*phi_eff**2 + 1.682_r8*phi_eff + 2.028) &
@@ -544,7 +545,7 @@ contains
                 else
                    qflx_h2osfc_surf(c) = 0._r8
                 endif
-                
+
              else
                 ! limit runoff to value of storage above S(pc)
                 if(h2osfc(c) >= h2osfc_thresh(c) .and. h2osfcflag/=0) then
@@ -602,7 +603,7 @@ contains
              !7. remove drainage from h2osfc and add to qflx_infl
              h2osfc(c) = h2osfc(c) - qflx_h2osfc_drain(c) * dtime
              qflx_infl(c) = qflx_infl(c) + qflx_h2osfc_drain(c)
-             
+
              !8. add drainage from river inundation to qflx_infl (land river two way coupling)
              if (use_lnd_rof_two_way) then
 
@@ -625,8 +626,8 @@ contains
                ! remove drainage from inundation volume
                h2orof(c) = h2orof(c) - qflx_h2orof_drain(c) * dtime
 
-               qflx_infl(c) = qflx_infl(c) + qflx_h2orof_drain(c) 
-               qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c) + qflx_h2orof_drain(c) 
+               qflx_infl(c) = qflx_infl(c) + qflx_h2orof_drain(c)
+               qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c) + qflx_h2orof_drain(c)
 
              else
                qflx_gross_infl_soil(c) = qflx_gross_infl_soil(c) + qflx_h2osfc_drain(c)
