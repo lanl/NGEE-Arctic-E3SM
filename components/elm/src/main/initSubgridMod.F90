@@ -13,11 +13,11 @@ module initSubgridMod
   use elm_varctl     , only : iulog
   use elm_varcon     , only : namep, namec, namel, namet
   use decompMod      , only : bounds_type
-  use GridcellType   , only : grc_pp                
+  use GridcellType   , only : grc_pp
   Use TopounitType   , only : top_pp
-  use LandunitType   , only : lun_pp                
-  use ColumnType     , only : col_pp                
-  use VegetationType      , only : veg_pp                
+  use LandunitType   , only : lun_pp
+  use ColumnType     , only : col_pp
+  use VegetationType , only : veg_pp
   !
   ! !PUBLIC TYPES:
   implicit none
@@ -29,33 +29,34 @@ module initSubgridMod
   public :: elm_ptrs_check    ! checks and writes out a summary of subgrid data
   public :: add_topounit      ! add an entry in the topounit-level arrays
   public :: add_landunit      ! add an entry in the landunit-level arrays
+  public :: add_polygon_landunit ! adds an entry in the landunit-level arrays for the special type of polygonal ground.
   public :: add_column        ! add an entry in the column-level arrays
   public :: add_patch         ! add an entry in the patch-level arrays
   !
   !-----------------------------------------------------------------------
 
 contains
-  
+
   !------------------------------------------------------------------------------
   subroutine elm_ptrs_compdown(bounds)
     !
     ! !DESCRIPTION:
-    ! Assumes the part of the subgrid pointing up has been set.  Fills 
+    ! Assumes the part of the subgrid pointing up has been set.  Fills
     ! in the data pointing down.  Up is p_c, p_l, p_g, c_l, c_g, and l_g.
     !
     ! This algorithm assumes all indices besides grid cell are monotonically
     ! increasing.  (Note that grid cell index is NOT monotonically increasing,
-    ! hence we cannot set initial & final indices at the grid cell level - 
+    ! hence we cannot set initial & final indices at the grid cell level -
     ! grc_pp%luni, grc_pp%lunf, etc.)
     !
     ! Algorithm works as follows.  The p, c, and l loops march through
     ! the full arrays (nump, numc, and numl) checking the "up" indexes.
-    ! As soon as the "up" index of the current (p,c,l) cell changes relative 
-    ! to the previous (p,c,l) cell, the *i array will be set to point down 
+    ! As soon as the "up" index of the current (p,c,l) cell changes relative
+    ! to the previous (p,c,l) cell, the *i array will be set to point down
     ! to that cell.  The *f array follows the same logic, so it's always the
     ! last "up" index from the previous cell when an "up" index changes.
     !
-    ! For example, a case where p_c(1:4) = 1 and p_c(5:12) = 2.  This 
+    ! For example, a case where p_c(1:4) = 1 and p_c(5:12) = 2.  This
     ! subroutine will set c_pi(1) = 1, c_pf(1) = 4, c_pi(2) = 5, c_pf(2) = 12.
     !
     ! !USES
@@ -78,7 +79,7 @@ contains
     !--- Loop p through full local begp:endp length
     !--- Separately check the p_c, p_l, and p_g indexes for a change in
     !---   the "up" index.
-    !--- If there is a change, verify that the current c,l,g is within the 
+    !--- If there is a change, verify that the current c,l,g is within the
     !---   valid range, and set c_pi, l_pi, or g_pi to that current c,l,g
     !--- Constantly update the c_pf, l_pf, and g_pf array.  When the
     !---   g, l, c index changes, the *_pf array will be set correctly
@@ -123,8 +124,8 @@ contains
        lun_pp%colf(curl) = c
        lun_pp%ncolumns(curl) = lun_pp%colf(curl) - lun_pp%coli(curl) + 1
     enddo
-    
-    ! Gridcell down pointers to topounits are monotonic, so those can be done like the 
+
+    ! Gridcell down pointers to topounits are monotonic, so those can be done like the
     ! previous monotonic down pointers
     curg = 0
     do t = bounds%begt,bounds%endt
@@ -142,7 +143,7 @@ contains
 
     ! Determine landunit_indices: indices into landunit-level arrays for each grid cell.
     ! Note that landunits not present in a given grid cell are set to ispval.
-    ! Preliminary implementation of topounits: leave this unchanged, but will only work 
+    ! Preliminary implementation of topounits: leave this unchanged, but will only work
     ! for max_topounits = 1
     grc_pp%landunit_indices(:,bounds%begg:bounds%endg) = ispval
     do l = bounds%begl,bounds%endl
@@ -184,7 +185,7 @@ contains
           call endrun(decomp_index=l, elmlevel=namel, msg=errMsg(__FILE__, __LINE__))
        end if
     end do
-    
+
   end subroutine elm_ptrs_compdown
 
   !------------------------------------------------------------------------------
@@ -221,7 +222,7 @@ contains
          begp => bounds%begp, &
          endp => bounds%endp  &
          )
-    
+
     if (masterproc) write(iulog,*) ' '
     if (masterproc) write(iulog,*) '---elm_ptrs_check:'
 
@@ -383,7 +384,7 @@ contains
     if (masterproc) write(iulog,*) ' '
 
     end associate
-    
+
   end subroutine elm_ptrs_check
 
   !-----------------------------------------------------------------------
@@ -396,7 +397,7 @@ contains
     !
     ! !ARGUMENTS:
     integer  , intent(inout) :: ti           ! input value is index of last topounit added; output value is index of this newly-added topounit
-    integer  , intent(in)    :: gi           ! gridcell index on which this topounit should be placed 
+    integer  , intent(in)    :: gi           ! gridcell index on which this topounit should be placed
     real(r8) , intent(in)    :: wtgcell      ! weight of the topounit relative to the gridcell
     real(r8) , intent(in)    :: elv          ! topounit elevation
     real(r8) , intent(in)    :: slp          ! topounit slope
@@ -415,9 +416,9 @@ contains
     top_pp%elevation(ti) = elv
     top_pp%slope(ti) = slp
     top_pp%aspect(ti) = asp
-    top_pp%topo_grc_ind(ti) = topo_ind    
+    top_pp%topo_grc_ind(ti) = topo_ind
     top_pp%active(ti) = is_tpu_active
-    
+
   end subroutine add_topounit
 
   !-----------------------------------------------------------------------
@@ -438,18 +439,18 @@ contains
     real(r8) , intent(in)    :: wttopounit ! weight of the landunit relative to the topounit
     !
     ! !LOCAL VARIABLES:
-    
+
     character(len=*), parameter :: subname = 'add_landunit'
     !-----------------------------------------------------------------------
-    
+
     li = li + 1
 
     lun_pp%topounit(li) = ti
     lun_pp%gridcell(li) = top_pp%gridcell(ti)
-    
+
     lun_pp%wttopounit(li) = wttopounit
     lun_pp%itype(li) = ltype
-    
+
     if (ltype == istsoil .or. ltype == istcrop) then
        lun_pp%ifspecial(li) = .false.
     else
@@ -476,6 +477,51 @@ contains
 
   end subroutine add_landunit
 
+!-----------------------------------------------------------------------
+  subroutine add_polygon_landunit(li, ti, ltype, wttopounit, polytype)
+   !
+   ! !DESCRIPTION:
+   ! Add an entry in the landunit-level arrays. li gives the index of the last landunit
+   ! added; the new landunit is added at li+1, and the li argument is incremented
+   ! accordingly.
+   !
+   ! This verison of add_landunit is specific to polygonal tundra.
+   !
+   ! !USES:
+   use landunit_varcon , only : istsoil, istcrop, istice_mec, istdlak, isturb_MIN, isturb_MAX
+   !
+   ! !ARGUMENTS:
+   integer  , intent(inout) :: li         ! input value is index of last landunit added; output value is index of this newly-added landunit
+   integer  , intent(in)    :: ti         ! topounit index on which this landunit should be placed
+   integer  , intent(in)    :: ltype      ! landunit type
+   real(r8) , intent(in)    :: wttopounit ! weight of the landunit relative to the topounit
+   integer  , intent(in)    :: polytype   ! defines the type of ice wedge polygon this landunit corresponds to
+   !
+   ! !LOCAL VARIABLES:
+
+   character(len=*), parameter :: subname = 'add_polygon_landunit'
+   !-----------------------------------------------------------------------
+
+   li = li + 1
+
+   lun_pp%topounit(li) = ti
+   lun_pp%gridcell(li) = top_pp%gridcell(ti)
+
+   lun_pp%wttopounit(li) = wttopounit
+   lun_pp%itype(li) = ltype
+
+   if (ltype == istsoil) then
+      lun_pp%ifspecial(li) = .false.
+      lun_pp%ispolygon(li) = .true.
+      lun_pp%polygontype(li) = polytype
+   else
+      write (iulog, *) "ERROR: attempting to assign polygonal tundra landunit to special or crop landunit type"
+      call endrun(msg=errMsg(__FILE__, __LINE__))
+   end if
+
+ end subroutine add_polygon_landunit
+
+
   !-----------------------------------------------------------------------
   subroutine add_column(ci, li, ctype, wtlunit)
     !
@@ -499,10 +545,10 @@ contains
     col_pp%landunit(ci) = li
     col_pp%topounit(ci) = lun_pp%topounit(li)
     col_pp%gridcell(ci) = lun_pp%gridcell(li)
-    
+
     col_pp%wtlunit(ci) = wtlunit
     col_pp%itype(ci) = ctype
-    
+
   end subroutine add_column
 
   !-----------------------------------------------------------------------
@@ -526,17 +572,17 @@ contains
     ! !LOCAL VARIABLES:
     integer :: li  ! landunit index, for convenience
     integer :: lb_offset ! offset between natpft_lb and 1
-    
+
     character(len=*), parameter :: subname = 'add_patch'
     !-----------------------------------------------------------------------
-    
+
     pi = pi + 1
 
     veg_pp%column(pi) = ci
     veg_pp%landunit(pi) = col_pp%landunit(ci)
     veg_pp%topounit(pi) = col_pp%topounit(ci)
     veg_pp%gridcell(pi) = col_pp%gridcell(ci)
-    
+
     veg_pp%wtcol(pi) = wtcol
     veg_pp%itype(pi) = ptype
 
