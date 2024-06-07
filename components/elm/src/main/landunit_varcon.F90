@@ -12,7 +12,7 @@ module landunit_varcon
   implicit none
   save
   private
-  
+
   !------------------------------------------------------------------
   ! Initialize landunit type constants
   !------------------------------------------------------------------
@@ -35,20 +35,19 @@ module landunit_varcon
 
   integer, parameter, public                   :: landunit_name_length = 40  ! max length of landunit names
   character(len=landunit_name_length), public  :: landunit_names(max_lunit)  ! name of each landunit type
-  
+
   ! land unit polygonal ground types
   integer, parameter, public :: ilowcenpoly     = 1     ! low-centered polygons
   integer, parameter, public :: iflatcenpoly    = 2     ! flat-centered polygons
   integer, parameter, public :: ihighcenpoly    = 3     ! high-centered polygons
-  
-  integer, parameter, public :: max_poly  = 3  !maximum value that lun_pp%polygontype can have
-                                        !(i.e., largest value in the above list)
+
+  integer, parameter, public :: max_polygon = 3  !maximum value that lun_pp%polygontype can have
+                                                 !(i.e., largest value in the above list)
 
   integer, parameter, public                   :: polygon_name_length = 40  ! max length of landunit names
-  character(len=polygon_name_length), public   :: polygon_names(max_poly)  ! name of each landunit type
-  
-  
-  
+  character(len=polygon_name_length), public   :: polygon_names(max_polygon)! name of each landunit type
+
+
   ! parameters that depend on the above constants
 
   integer, parameter, public :: numurbl = isturb_MAX - isturb_MIN + 1   ! number of urban landunits
@@ -57,7 +56,7 @@ module landunit_varcon
   ! !PUBLIC MEMBER FUNCTIONS:
   public :: landunit_varcon_init  ! initialize constants in this module
   public :: landunit_is_special   ! returns true if this is a special landunit
-  
+
   !
   ! !PRIVATE MEMBER FUNCTIONS:
   private :: set_landunit_names   ! set the landunit_names vector
@@ -65,7 +64,7 @@ module landunit_varcon
 !-----------------------------------------------------------------------
 
 contains
-  
+
   !-----------------------------------------------------------------------
   subroutine landunit_varcon_init()
     !
@@ -77,15 +76,15 @@ contains
     ! !ARGUMENTS:
     !
     ! !LOCAL VARIABLES:
-    
+
     character(len=*), parameter :: subname = 'landunit_varcon_init'
     !-----------------------------------------------------------------------
-    
+
     call set_landunit_names()
     call set_polygon_names()
 
   end subroutine landunit_varcon_init
-  
+
   !-----------------------------------------------------------------------
   function landunit_is_special(ltype) result(is_special)
     !
@@ -124,7 +123,7 @@ contains
     character(len=*), parameter :: not_set = 'NOT_SET'
     character(len=*), parameter :: subname = 'set_polygon_names'
     !-----------------------------------------------------------------------
-    
+
     polygon_names(:) = not_set
 
     polygon_names(ilowcenpoly) = 'low_centered_polygons'
@@ -134,7 +133,7 @@ contains
     if (any(polygon_names == not_set)) then
        call shr_sys_abort(trim(subname)//': Not all polygon names set')
     end if
- 
+
   end subroutine set_polygon_names
 
   !-----------------------------------------------------------------------
@@ -149,7 +148,7 @@ contains
     character(len=*), parameter :: not_set = 'NOT_SET'
     character(len=*), parameter :: subname = 'set_landunit_names'
     !-----------------------------------------------------------------------
-    
+
     landunit_names(:) = not_set
 
     landunit_names(istsoil) = 'vegetated_or_bare_soil'
