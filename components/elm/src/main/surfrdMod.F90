@@ -1683,7 +1683,7 @@ contains
     beg = domain%nbeg
     end = domain%nend
 
-    allocate(latc(beg:end),lonc(beg:end),max_topounits)
+    allocate(latc(beg:end),lonc(beg:end),max_topounits(beg:end))
 
     call ncd_io(ncid=ncid, varname='LONGXY', flag='read', data=lonc, &
          dim1name=grlnd, readvar=readvar)
