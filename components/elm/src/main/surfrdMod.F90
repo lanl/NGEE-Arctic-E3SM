@@ -1631,6 +1631,7 @@ contains
 ! !USES:
     use domainMod , only : domain_type
     use fileutils , only : getfil
+    use topounit_varcon ,  only : max_topounits
 
 ! !ARGUMENTS:
     implicit none
@@ -1642,6 +1643,7 @@ contains
 !
 ! !REVISION HISTORY:
 ! Created by Dalei Hao
+! Modified for multiple topounits by Rich Fiorella
 !
 ! !LOCAL VARIABLES:
 !EOP
@@ -1681,7 +1683,7 @@ contains
     beg = domain%nbeg
     end = domain%nend
 
-    allocate(latc(beg:end),lonc(beg:end))
+    allocate(latc(beg:end),lonc(beg:end),max_topounits)
 
     call ncd_io(ncid=ncid, varname='LONGXY', flag='read', data=lonc, &
          dim1name=grlnd, readvar=readvar)
@@ -1716,7 +1718,7 @@ contains
          dim1name=grlnd, readvar=readvar)
     If (.not. readvar) call endrun( trim(subname)//' ERROR: SINSL_SINAS  NOT on fsurdat file' )
 
-    deallocate(latc,lonc)
+    deallocate(latc,lonc,max_topounits)
 
     call ncd_pio_closefile(ncid)
 
