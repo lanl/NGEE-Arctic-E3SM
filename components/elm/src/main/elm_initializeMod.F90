@@ -14,7 +14,7 @@ module elm_initializeMod
   use elm_varctl       , only : use_lch4, use_cn, use_voc, use_c13, use_c14
   use elm_varctl       , only : use_fates, use_betr, use_fates_sp, use_fan, use_fates_luh
   use elm_varsur       , only : wt_lunit, urban_valid, wt_nat_patch, wt_cft, wt_glc_mec, topo_glc_mec,firrig,f_surf,f_grd
-  use elm_varsur       , only : fert_cft, fert_p_cft
+  use elm_varsur       , only : fert_cft, fert_p_cft, wt_polygon
   use elm_varsur       , only : wt_tunit, elv_tunit, slp_tunit,asp_tunit,num_tunit_per_grd
   use perf_mod         , only : t_startf, t_stopf
   !use readParamsMod    , only : readParameters
@@ -62,7 +62,7 @@ contains
     use elm_varpar                , only: update_pft_array_bounds
     use elm_varpar                , only: surfpft_lb, surfpft_ub
     use elm_varcon                , only: elm_varcon_init
-    use landunit_varcon           , only: landunit_varcon_init, max_lunit, istice_mec
+    use landunit_varcon           , only: landunit_varcon_init, max_lunit, istice_mec, max_polygon
     use column_varcon             , only: col_itype_to_icemec_class
     use elm_varctl                , only: fsurdat, fatmlndfrc, flndtopo, fglcmask, noland, version
     use pftvarcon                 , only: pftconrd
@@ -86,7 +86,7 @@ contains
     use filterMod                 , only: allocFilters
     use reweightMod               , only: reweight_wrapup
     use topounit_varcon           , only: max_topounits, has_topounit, topounit_varcon_init
-    use elm_varctl                , only: use_top_solar_rad
+    use elm_varctl                , only: use_top_solar_rad, use_polygonal_tundra
     !
     ! !LOCAL VARIABLES:
     integer           :: ier                     ! error status
@@ -139,8 +139,8 @@ contains
        ! in the following call) for FATES runs
        call ELMFatesGlobals1()
        call update_pft_array_bounds()
-    end if    
-    
+    end if
+
     call elm_petsc_init()
     call init_soil_temperature()
 
@@ -239,24 +239,24 @@ contains
           call shr_sys_flush(iulog)
        endif
 
-       call surfrd_get_topo(ldomain, flndtopo)  
-    endif    
-    
+       call surfrd_get_topo(ldomain, flndtopo)
+    endif
+
     if (fsurdat /= " " .and. use_top_solar_rad) then
        if (masterproc) then
           write(iulog,*) 'Attempting to read topo parameters for TOP solar radiation parameterization from ',trim(fsurdat)
           call shr_sys_flush(iulog)
        endif
-       call surfrd_get_topo_for_solar_rad(ldomain, fsurdat)  
+       call surfrd_get_topo_for_solar_rad(ldomain, fsurdat)
 
     endif
-    
+
     !-------------------------------------------------------------------------
     ! Topounit
     !-------------------------------------------------------------------------
     call topounit_varcon_init(begg, endg,fsurdat,ldomain)  ! Topounits
     !-------------------------------------------------------------------------
-    
+
     !-------------------------------------------------------------------------
     ! Initialize urban model input (initialize urbinp data structure)
     ! This needs to be called BEFORE the call to surfrd_get_data since
@@ -266,7 +266,7 @@ contains
 
     ! Allocate surface grid dynamic memory (just gridcell bounds dependent)
 
-    allocate (wt_lunit     (begg:endg,1:max_topounits, max_lunit           )) 
+    allocate (wt_lunit     (begg:endg,1:max_topounits, max_lunit           ))
     allocate (urban_valid  (begg:endg,1:max_topounits                      ))
     allocate (wt_nat_patch (begg:endg,1:max_topounits, surfpft_lb:surfpft_ub ))
     allocate (wt_cft       (begg:endg,1:max_topounits, cft_lb:cft_ub       ))
@@ -279,8 +279,13 @@ contains
        allocate (wt_glc_mec  (1,1,1))
        allocate (topo_glc_mec(1,1,1))
     endif
-    
-    allocate (wt_tunit  (begg:endg,1:max_topounits  )) 
+    if (use_polygonal_tundra) then
+      allocate (wt_polygon (begg:endg,1:max_topounits, max_polygon))
+    else
+      allocate (wt_polygon (1,1,1)) ! RF-not sure this is needed
+    endif
+
+    allocate (wt_tunit  (begg:endg,1:max_topounits  ))
     allocate (elv_tunit (begg:endg,1:max_topounits  ))
     allocate (slp_tunit (begg:endg,1:max_topounits  ))
     allocate (asp_tunit (begg:endg,1:max_topounits  ))
@@ -302,7 +307,7 @@ contains
     if (use_fates) then
        call FatesReadPFTs()
     end if
-    
+
     ! Read surface dataset and set up subgrid weight arrays
     call surfrd_get_data(begg, endg, ldomain, fsurdat)
 
@@ -316,7 +321,7 @@ contains
 
     end if
 
-    
+
     ! ------------------------------------------------------------------------
     ! Determine decomposition of subgrid scale topounits, landunits, topounits, columns, patches
     ! ------------------------------------------------------------------------
@@ -340,12 +345,12 @@ contains
 
     ! Initialize the gridcell data types
     call grc_pp%Init (bounds_proc%begg_all, bounds_proc%endg_all)
-    
+
     ! Read topounit information from fsurdat
     if (has_topounit) then
-         call surfrd_topounit_data(begg, endg, fsurdat)         
+         call surfrd_topounit_data(begg, endg, fsurdat)
     end if
-    
+
     ! Initialize the topographic unit data types
     call top_pp%Init (bounds_proc%begt_all, bounds_proc%endt_all) ! topology and physical properties
     call top_as%Init (bounds_proc%begt_all, bounds_proc%endt_all) ! atmospheric state variables (forcings)
@@ -373,7 +378,7 @@ contains
     call initGridCells()
 
     ! Set global seg maps for gridcells, topounits, landlunits, columns and patches
-    !if(max_topounits > 1) then 
+    !if(max_topounits > 1) then
     !   if (create_glacier_mec_landunit) then
     !      call decompInit_gtlcp(ns, ni, nj, ldomain%glcmask,ldomain%num_tunits_per_grd)
     !   else
@@ -392,7 +397,7 @@ contains
     call t_startf('init_filters')
     call allocFilters()
     call t_stopf('init_filters')
-    
+
     nclumps = get_proc_clumps()
     !$OMP PARALLEL DO PRIVATE (nc, bounds_clump)
     do nc = 1, nclumps
@@ -421,6 +426,7 @@ contains
     !deallocate (wt_lunit, wt_cft, wt_glc_mec)
     deallocate (wt_cft, wt_glc_mec)    !wt_lunit not deallocated because it is being used in CanopyHydrologyMod.F90
     deallocate (wt_tunit, elv_tunit, slp_tunit, asp_tunit,num_tunit_per_grd)
+    deallocate (wt_polygon) ! RF - might be used elsewhere, not sure if we want to deallocate here.
     call t_stopf('elm_init1')
 
     ! initialize glc_topo
@@ -573,7 +579,7 @@ contains
     ! ------------------------------------------------------------------------
     ! Initialize time manager
     ! ------------------------------------------------------------------------
-    if (nsrest == nsrStartup) then  
+    if (nsrest == nsrStartup) then
        call timemgr_init()
     else
        call restFile_getfile(file=fnamer, path=pnamer)
@@ -582,14 +588,14 @@ contains
        call restFile_close( ncid=ncid )
        call timemgr_restart()
     end if
-    
+
     ! ------------------------------------------------------------------------
     ! Pass model timestep info to FATES
     ! ------------------------------------------------------------------------
     if(use_fates) then
        call ELMFatesTimesteps()
     end if
-    
+
     ! ------------------------------------------------------------------------
     ! Initialize daylength from the previous time step (needed so prev_dayl can be set correctly)
     ! ------------------------------------------------------------------------
@@ -716,7 +722,7 @@ contains
     end if
 
     call cnstate_vars%initAccBuffer(bounds_proc)
-    
+
     if (use_fates) then
       call alm_fates%InitAccBuffer(bounds_proc)
    end if
