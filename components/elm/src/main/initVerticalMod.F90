@@ -14,16 +14,16 @@ module initVerticalMod
   use spmdMod        , only : masterproc
   use elm_varpar     , only : more_vertlayers, nlevsno, nlevgrnd, nlevlak
   use elm_varpar     , only : toplev_equalspace, nlev_equalspace
-  use elm_varpar     , only : nlevsoi, nlevsoifl, nlevurb, nlevslp 
+  use elm_varpar     , only : nlevsoi, nlevsoifl, nlevurb, nlevslp
   use elm_varctl     , only : fsurdat, iulog, use_var_soil_thick
   use elm_varctl     , only : use_vancouver, use_mexicocity, use_vertsoilc, use_extralakelayers, use_extrasnowlayers
-  use elm_varctl     , only : use_erosion
-  use elm_varcon     , only : zlak, dzlak, zsoi, dzsoi, zisoi, dzsoi_decomp, spval, grlnd 
+  use elm_varctl     , only : use_erosion, use_polygonal_tundra
+  use elm_varcon     , only : zlak, dzlak, zsoi, dzsoi, zisoi, dzsoi_decomp, spval, grlnd
   use column_varcon  , only : icol_roof, icol_sunwall, icol_shadewall, icol_road_perv, icol_road_imperv
   use landunit_varcon, only : istdlak, istice_mec
   use fileutils      , only : getfil
-  use LandunitType   , only : lun_pp                
-  use ColumnType     , only : col_pp                
+  use LandunitType   , only : lun_pp
+  use ColumnType     , only : col_pp
   use SnowHydrologyMod, only : InitSnowLayers
   use ncdio_pio
   use topounit_varcon  , only : max_topounits
@@ -50,13 +50,14 @@ contains
     real(r8)            , intent(in)    :: thick_roof(bounds%begl:)
     !
     ! LOCAL VARAIBLES:
-    integer               :: c,l,t,ti,topi,g,i,j,lev     ! indices 
+    integer               :: c,l,t,ti,topi,g,i,j,lev     ! indices
     type(file_desc_t)     :: ncid              ! netcdf id
-    logical               :: readvar 
+    logical               :: readvar
     integer               :: dimid             ! dimension id
     character(len=256)    :: locfn             ! local filename
-    real(r8) ,pointer     :: std (:)           ! read in - topo_std 
-    real(r8) ,pointer     :: tslope (:)        ! read in - topo_slope 
+    real(r8) ,pointer     :: std (:)           ! read in - topo_std
+    real(r8) ,pointer     :: tslope (:)        ! read in - topo_slope
+    real(r8) ,pointer     :: gradz(:)          ! read in - gradz (polygonal tundra only)
     real(r8) ,pointer     :: hslp_p10 (:,:,:)    ! read in - hillslope slope percentiles
     real(r8) ,pointer     :: dtb (:,:)           ! read in - DTB
     real(r8)              :: beddep            ! temporary
@@ -68,14 +69,14 @@ contains
     integer               :: ier               ! error status
     real(r8)              :: scalez = 0.025_r8 ! Soil layer thickness discretization (m)
     real(r8)              :: thick_equal = 0.2
-    real(r8) ,pointer     :: lakedepth_in(:,:)   ! read in - lakedepth 
+    real(r8) ,pointer     :: lakedepth_in(:,:)   ! read in - lakedepth
     real(r8), allocatable :: zurb_wall(:,:)    ! wall (layer node depth)
     real(r8), allocatable :: zurb_roof(:,:)    ! roof (layer node depth)
     real(r8), allocatable :: dzurb_wall(:,:)   ! wall (layer thickness)
     real(r8), allocatable :: dzurb_roof(:,:)   ! roof (layer thickness)
     real(r8), allocatable :: ziurb_wall(:,:)   ! wall (layer interface)
     real(r8), allocatable :: ziurb_roof(:,:)   ! roof (layer interface)
-    real(r8)              :: depthratio        ! ratio of lake depth to standard deep lake depth 
+    real(r8)              :: depthratio        ! ratio of lake depth to standard deep lake depth
     integer               :: begc, endc
     integer               :: begl, endl
     !------------------------------------------------------------------------
@@ -87,7 +88,7 @@ contains
     SHR_ASSERT_ALL((ubound(thick_wall)  == (/endl/)), errMsg(__FILE__, __LINE__))
     SHR_ASSERT_ALL((ubound(thick_roof)  == (/endl/)), errMsg(__FILE__, __LINE__))
 
-    ! Open surface dataset to read in data below 
+    ! Open surface dataset to read in data below
 
     call getfil (fsurdat, locfn, 0)
     call ncd_pio_openfile (ncid, locfn, 0)
@@ -103,19 +104,19 @@ contains
     end if
 
     ! --------------------------------------------------------------------
-    ! Define layer structure for soil, lakes, urban walls and roof 
+    ! Define layer structure for soil, lakes, urban walls and roof
     ! Vertical profile of snow is not initialized here - but below
     ! --------------------------------------------------------------------
-    
+
     ! Soil layers and interfaces (assumed same for all non-lake patches)
     ! "0" refers to soil surface and "nlevsoi" refers to the bottom of model soil
-    
+
     if ( more_vertlayers )then
-       ! replace standard exponential grid with a grid that starts out exponential, 
-       ! then has several evenly spaced layers, then finishes off exponential. 
-       ! this allows the upper soil to behave as standard, but then continues 
+       ! replace standard exponential grid with a grid that starts out exponential,
+       ! then has several evenly spaced layers, then finishes off exponential.
+       ! this allows the upper soil to behave as standard, but then continues
        ! with higher resolution to a deeper depth, so that, for example, permafrost
-       ! dynamics are not lost due to an inability to resolve temperature, moisture, 
+       ! dynamics are not lost due to an inability to resolve temperature, moisture,
        ! and biogeochemical dynamics at the base of the active layer
        do j = 1, toplev_equalspace
           zsoi(j) = scalez*(exp(0.5_r8*(j-0.5_r8))-1._r8)    !node depths
@@ -148,7 +149,7 @@ contains
     zisoi(nlevgrnd) = zsoi(nlevgrnd) + 0.5_r8*dzsoi(nlevgrnd)
 
     if (masterproc) then
-       write(iulog, *) 'zsoi', zsoi(:) 
+       write(iulog, *) 'zsoi', zsoi(:)
        write(iulog, *) 'zisoi: ', zisoi(:)
        write(iulog, *) 'dzsoi: ', dzsoi(:)
     end if
@@ -164,7 +165,7 @@ contains
        dzsoi_decomp(1) = 1.
     end if
     if (masterproc) then
-       write(iulog, *) 'dzsoi_decomp', dzsoi_decomp(:) 
+       write(iulog, *) 'dzsoi_decomp', dzsoi_decomp(:)
     end if
 
     if (nlevurb > 0) then
@@ -187,7 +188,7 @@ contains
 
        ! "0" refers to urban wall/roof surface and "nlevsoi" refers to urban wall/roof bottom
        if (lun_pp%urbpoi(l)) then
-          if (use_vancouver) then       
+          if (use_vancouver) then
              zurb_wall(l,1) = 0.010_r8/2._r8
              zurb_wall(l,2) = zurb_wall(l,1) + 0.010_r8/2._r8 + 0.020_r8/2._r8
              zurb_wall(l,3) = zurb_wall(l,2) + 0.020_r8/2._r8 + 0.070_r8/2._r8
@@ -281,13 +282,13 @@ contains
 
              dzurb_roof(l,1) = 0.5*(zurb_roof(l,1)+zurb_roof(l,2))    !thickness b/n two interfaces
              do j = 2,nlevurb-1
-                dzurb_roof(l,j)= 0.5*(zurb_roof(l,j+1)-zurb_roof(l,j-1)) 
+                dzurb_roof(l,j)= 0.5*(zurb_roof(l,j+1)-zurb_roof(l,j-1))
              enddo
              dzurb_roof(l,nlevurb) = zurb_roof(l,nlevurb)-zurb_roof(l,nlevurb-1)
 
              dzurb_wall(l,1) = 0.5*(zurb_wall(l,1)+zurb_wall(l,2))    !thickness b/n two interfaces
              do j = 2,nlevurb-1
-                dzurb_wall(l,j)= 0.5*(zurb_wall(l,j+1)-zurb_wall(l,j-1)) 
+                dzurb_wall(l,j)= 0.5*(zurb_wall(l,j+1)-zurb_wall(l,j-1))
              enddo
              dzurb_wall(l,nlevurb) = zurb_wall(l,nlevurb)-zurb_wall(l,nlevurb-1)
 
@@ -362,7 +363,7 @@ contains
        t = col_pp%topounit(c)
        topi = grc_pp%topi(g)
        ti = t - topi + 1
-       
+
        col_pp%lakedepth(c) = lakedepth_in(g,ti)
     end do
     deallocate(lakedepth_in)
@@ -435,7 +436,7 @@ contains
 
           else if (col_pp%lakedepth(c) > 1._r8 .and. col_pp%lakedepth(c) < 5000._r8) then
 
-             depthratio                 = col_pp%lakedepth(c) / (zlak(nlevlak) + 0.5_r8*dzlak(nlevlak)) 
+             depthratio                 = col_pp%lakedepth(c) / (zlak(nlevlak) + 0.5_r8*dzlak(nlevlak))
              col_pp%z_lake(c,1)            = zlak(1)
              col_pp%dz_lake(c,1)           = dzlak(1)
              col_pp%dz_lake(c,2:nlevlak-1) = dzlak(2:nlevlak-1)*depthratio
@@ -466,12 +467,12 @@ contains
     end do
 
     !-----------------------------------------------
-    ! Set cold-start values for snow levels, snow layers and snow interfaces 
+    ! Set cold-start values for snow levels, snow layers and snow interfaces
     !-----------------------------------------------
 
     if (.not. use_extrasnowlayers) then
-    
-        associate(snl => col_pp%snl) ! Output: [integer (:)    ]  number of snow layers   
+
+        associate(snl => col_pp%snl) ! Output: [integer (:)    ]  number of snow layers
 
           do c = bounds%begc,bounds%endc
              l = col_pp%landunit(c)
@@ -547,12 +548,12 @@ contains
                 col_pp%zi(c,-nlevsno+0:0) = 0._r8
              end if
           end do
-      
+
         end associate
-          
+
       else ! use extra (16) snow layers, for firn model
           call InitSnowLayers(bounds, snow_depth(bounds%begc:bounds%endc))
-      
+
       end if
 
       !-----------------------------------------------
@@ -563,7 +564,7 @@ contains
       call ncd_io(ncid=ncid, varname='SLOPE', flag='read', data=tslope, dim1name=grlnd, readvar=readvar)
       if (.not. readvar) then
          call shr_sys_abort(' ERROR: TOPOGRAPHIC SLOPE NOT on surfdata file'//&
-              errMsg(__FILE__, __LINE__)) 
+              errMsg(__FILE__, __LINE__))
       end if
       do c = begc,endc
          g = col_pp%gridcell(c)
@@ -572,11 +573,24 @@ contains
       end do
       deallocate(tslope)
 
+      if (use_polygonal_tundra) then
+         allocate(gradz(bounds%begg:bounds%endg))
+         call ncd_io(ncid=ncid, varname='GRADZ', flag='read', data=gradz, dim1name=grlnd, readvar=readvar)
+         if (.not. readvar) then
+            call shr_sys_abort(' ERROR: polygonal tundra turned on, but GRADZ not on surfdata file'//&
+            errMsg(__FILE__, __LINE__))
+         end if
+         do c = begc,endc
+            g = col_pp%gridcell(c)
+            col_pp%meangradz(c) = gradz(g)
+         end do
+      end if
+
       allocate(std(bounds%begg:bounds%endg))
       call ncd_io(ncid=ncid, varname='STD_ELEV', flag='read', data=std, dim1name=grlnd, readvar=readvar)
       if (.not. readvar) then
          call shr_sys_abort(' ERROR: TOPOGRAPHIC STDdev (STD_ELEV) NOT on surfdata file'//&
-              errMsg(__FILE__, __LINE__)) 
+              errMsg(__FILE__, __LINE__))
       end if
       do c = begc,endc
          g = col_pp%gridcell(c)
@@ -623,11 +637,11 @@ contains
          else
 	    do c = begc,endc
                g = col_pp%gridcell(c)
-               l = col_pp%landunit(c)               
+               l = col_pp%landunit(c)
                t = col_pp%topounit(c)
                topi = grc_pp%topi(g)
                ti = t - topi + 1
-               
+
                if (lun_pp%urbpoi(l) .and. col_pp%itype(c) /= icol_road_imperv .and. col_pp%itype(c) /= icol_road_perv) then
                	  col_pp%nlevbed(c) = nlevurb
                else if (lun_pp%itype(l) == istdlak) then
