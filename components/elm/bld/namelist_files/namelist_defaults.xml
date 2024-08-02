@@ -185,7 +185,7 @@ ic_tod="0" sim_year="1850" glc_nec="0" use_crop=".false." >lnd/clm2/initdata_map
 ic_tod="0" sim_year="2000" glc_nec="0" use_crop=".false." >lnd/clm2/initdata_map/clmi.ICLM45BC.ne30_ne30.d0241119c.clm2.r.nc
 </finidat>
 
-<finidat hgrid="ne30np4.pg2" maxpft="17" mask="EC30to60E2r2" use_cn=".false." ic_ymd="19500101" more_vertlayers=".false." 
+<finidat hgrid="ne30np4.pg2" maxpft="17" mask="EC30to60E2r2" use_cn=".false." ic_ymd="19500101" more_vertlayers=".false."
 sim_year="1950" glc_nec="0" use_crop=".false.">lnd/clm2/initdata/20210802.ICRUELM-1950.ne30pg2_EC30to60E2r2.elm.r.0051-01-01-00000.nc
 </finidat>
 
@@ -505,11 +505,11 @@ lnd/clm2/surfdata_map/surfdata_conusx4v1_simyr2000_c160503.nc</fsurdat>
 
 <flanduse_timeseries hgrid="ne30np4"       sim_year_range="1850-2000"
  use_crop=".false."  >lnd/clm2/surfdata_map/landuse.timeseries_ne30np4_hist_simyr1850-2015_c180306.nc</flanduse_timeseries>
- <flanduse_timeseries hgrid="ne30np4.pg2"  sim_year_range="1850-2000" 
+ <flanduse_timeseries hgrid="ne30np4.pg2"  sim_year_range="1850-2000"
  use_crop=".false."  >lnd/clm2/surfdata_map/landuse.timeseries_ne30np4.pg2_hist_simyr1850-2015_c210113.nc</flanduse_timeseries>
  <flanduse_timeseries hgrid="ne4np4.pg2"  sim_year_range="1850-2000"
  use_crop=".false."  >lnd/clm2/surfdata_map/landuse.timeseries_ne4pg2_hist_simyr1850-2015_c210722.nc</flanduse_timeseries>
- <flanduse_timeseries hgrid="ne0np4_northamericax4v1.pg2"  sim_year_range="1850-2000" 
+ <flanduse_timeseries hgrid="ne0np4_northamericax4v1.pg2"  sim_year_range="1850-2000"
  use_crop=".false."  >lnd/clm2/surfdata_map/landuse.timeseries_ne0np4_northamericax4v1.pg2_hist_simyr1850-2015_c211015.nc</flanduse_timeseries>
 <flanduse_timeseries hgrid="ne16np4" sim_year_range="1850-2000"
  use_crop=".false."  >lnd/clm2/surfdata_map/surfdata.pftdyn_ne16np4_hist_simyr1850-2005_c160803.nc</flanduse_timeseries>
@@ -2227,5 +2227,8 @@ this mask will have smb calculated over the entire global land surface
 <use_fan use_cn=".false.">.false.</use_fan>
 <use_fan use_fates=".true." >.false.</use_fan>
 <use_fan fan_mode='disable'>.false.</use_fan>
+
+<!-- NGEE Arctic Options -->
+<use_arctic_init>.false.</use_arctic_init>;
 
 </namelist_defaults>
