@@ -1683,8 +1683,6 @@ contains
        this%frac_h2osfc_act(c)        = 0._r8
        this%h2orof(c)                 = 0._r8
        this%frac_h2orof(c)            = 0._r8
-       this%iwp_subsidence(c)         = 0._r8
-       this%frac_melted(c,:)          = 0._r8
 
        if (lun_pp%urbpoi(l)) then
           ! From Bonan 1996 (LSM technical note)
@@ -1854,6 +1852,8 @@ contains
        if (use_polygonal_tundra) then
          ! RPF 240713 - notes from Chuck Abolt: initialize all to 0.36_r8
          this%excess_ice(c,:) = 0.36_r8
+         this%iwp_subsidence(c) = 0._r8
+         this%frac_melted(c,:)  = 0._r8
        end if
     end do
 
