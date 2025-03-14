@@ -528,14 +528,14 @@ contains
              endif
 
              if (lun_pp%ispolygon(col_pp%landunit(c))) then
-                vdep = (2_r8*iwp_exclvol(c) - iwp_microrel(c)) * (iwp_ddep(c)/iwp_microrel(c))**3_r8 &
-                       + (2_r8*iwp_microrel(c) - 3_r8*iwp_exclvol(c)) * (iwp_ddep(c)/iwp_microrel(c))**2_r8
+                vdep = (2.0_r8*iwp_exclvol(c) - iwp_microrel(c)) * (iwp_ddep(c)/iwp_microrel(c))**3_r8 &
+                       + (2.0_r8*iwp_microrel(c) - 3.0_r8*iwp_exclvol(c)) * (iwp_ddep(c)/iwp_microrel(c))**2_r8
                 phi_eff = min(iwp_subsidence(c), 0.4_r8)  !fix this variable when available to pull from alt calculations
                 swc = h2osfc(c)/1000_r8 ! convert to m
                 
                 if (swc >= vdep) then
                    if (lun_pp%polygontype(col_pp%landunit(c)) == ilowcenpoly) then
-                      k_wet = (2890_r8*phi_eff**4 - 1171.1_r8*phi_eff**3 + 144.94_r8*phi_eff**2 + 1.682_r8*phi_eff + 2.028) &
+                      k_wet = (2890.0_r8*phi_eff**4 - 1171.1_r8*phi_eff**3 + 144.94_r8*phi_eff**2 + 1.682_r8*phi_eff + 2.028_r8) &
                               * (710.3_r8*meangradz(c)**2 - 28.736_r8*meangradz(c) + 12.74_r8)
                    else
                       k_wet = 24.925_r8 * (710.3_r8*meangradz(c)**2 - 28.736_r8*meangradz(c) + 12.74_r8)
@@ -550,7 +550,7 @@ contains
                 ! limit runoff to value of storage above S(pc)
                 if(h2osfc(c) >= h2osfc_thresh(c) .and. h2osfcflag/=0) then
                    ! spatially variable k_wet
-                   k_wet=1.0_r8 * sin((rpi/180.) * col_pp%topo_slope(c))
+                   k_wet=1.0_r8 * sin((rpi/180._r8) * col_pp%topo_slope(c))
                    qflx_h2osfc_surf(c) = k_wet * frac_infclust * (h2osfc(c) - h2osfc_thresh(c))
 
                    qflx_h2osfc_surf(c)=min(qflx_h2osfc_surf(c),(h2osfc(c) - h2osfc_thresh(c))/dtime)
@@ -580,7 +580,7 @@ contains
              if (h2osfc(c) < 0.0) then
                 qflx_infl(c) = qflx_infl(c) + h2osfc(c)/dtime
                 qflx_gross_evap_soil(c) = qflx_gross_evap_soil(c) - h2osfc(c)/dtime
-                h2osfc(c) = 0.0
+                h2osfc(c) = 0.0_r8
                 qflx_h2osfc_drain(c)= 0._r8
              else
                 if ( use_modified_infil ) then
