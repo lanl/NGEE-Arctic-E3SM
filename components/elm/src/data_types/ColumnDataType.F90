@@ -1284,12 +1284,12 @@ contains
                 end if
              end if
           else
-            if (use_arctic_init) then
-              g = lun_pp%gridcell(l)
-              this%t_soisno(c,1:nlevgrnd) = 250._r8 + 40._r8 * cos(grc_pp%lat(g)) ! vary between 250 and 290 based on cos(lat)
-            else
+            !if (use_arctic_init) then
+            !  g = lun_pp%gridcell(l)
+            !  this%t_soisno(c,1:nlevgrnd) = 270._r8 + 20._r8 * cos(grc_pp%lat(g)) ! vary between 270 and 290 based on cos(lat)
+            !else
               this%t_soisno(c,1:nlevgrnd) = 274._r8
-            end if
+            !end if
           endif
           this%t_grnd(c) = this%t_soisno(c,snl(c)+1)
        endif
@@ -1755,10 +1755,10 @@ contains
                 if (j > nlevbed) then
                    this%h2osoi_vol(c,j) = 0.0_r8
                 else
-		             if (use_fates .or. use_hydrstress) then
+		             if (use_fates .or. use_hydrstress .or. use_arctic_init) then
                       this%h2osoi_vol(c,j) = 0.70_r8*watsat_input(c,j) !0.15_r8 to avoid very dry conditions that cause errors in FATES
-                   else if (use_arctic_init) then
-                      this%h2osoi_vol(c,j) = watsat_input(c,j) ! start saturated for arctic
+                  !  else if (use_arctic_init) then
+                  !     this%h2osoi_vol(c,j) = 0.80_r8*watsat_input(c,j) ! start 80% saturated for arctic
                    else
                       this%h2osoi_vol(c,j) = 0.15_r8
                    endif
